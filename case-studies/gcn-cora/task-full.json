@@ -1,0 +1,57 @@
+{
+  "schema_version": "1.0",
+  "task_id": "gcn-cora-table2-100-seed",
+  "title": "GCN Cora Table 2 100-seed reproduction",
+  "description": "Paper-aligned fixed-split reproduction using 100 random weight initializations.",
+  "paper": {
+    "pdf_path": "paper/gcn-paper.pdf",
+    "repository_url": "https://github.com/tkipf/gcn.git",
+    "commit_sha": "39a4089fe72ad9f055ed6fdb9746abdcfebc4d81",
+    "evidence": [
+      {
+        "field": "reported_value",
+        "quote": "GCN (this paper) 70.3 (7s) 81.5 (4s) 79.0 (38s) 66.0 (48s)",
+        "page": 6,
+        "table": "Table 2",
+        "cell": "GCN (this paper) / Cora",
+        "confidence": 1.0
+      }
+    ]
+  },
+  "source": {
+    "directory": "experiment/upstream",
+    "command": ["{python}", "run_gcn.py"],
+    "result_file": "metrics.json",
+    "metric_key": "test_accuracy_percent"
+  },
+  "claim": {
+    "metric": "Cora test classification accuracy",
+    "reported_value": 81.5,
+    "unit": "percent",
+    "acceptance": {
+      "mode": "absolute",
+      "tolerance": 1.0,
+      "min_successful_seeds": 100,
+      "aggregation": "mean"
+    }
+  },
+  "execution": {
+    "seeds": [
+      0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
+      10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+      20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
+      30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+      40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
+      50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
+      60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+      70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
+      80, 81, 82, 83, 84, 85, 86, 87, 88, 89,
+      90, 91, 92, 93, 94, 95, 96, 97, 98, 99
+    ],
+    "timeout_seconds": 900,
+    "cpu_limit": 2.0,
+    "memory_mb": 4096,
+    "build_network": true,
+    "network": false
+  }
+}

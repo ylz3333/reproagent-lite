@@ -1,0 +1,49 @@
+diff --git a/gcn/train.py b/gcn/train.py
+index 3c9bb2d..7e1c85f 100644
+--- a/gcn/train.py
++++ b/gcn/train.py
+@@ -1,6 +1,9 @@
+ from __future__ import division
+ from __future__ import print_function
+ 
++import json
++import os
++import sys
+ import time
+ import tensorflow as tf
+ 
+@@ -8,7 +11,7 @@ from gcn.utils import *
+ from gcn.models import GCN, MLP
+ 
+ # Set random seed
+-seed = 123
++seed = int(os.environ.get('REPRO_SEED', '123'))
+ np.random.seed(seed)
+ tf.set_random_seed(seed)
+ 
+@@ -105,3 +108,25 @@ print("Optimization Finished!")
+ test_cost, test_acc, test_duration = evaluate(features, support, y_test, test_mask, placeholders)
+ print("Test set results:", "cost=", "{:.5f}".format(test_cost),
+       "accuracy=", "{:.5f}".format(test_acc), "time=", "{:.5f}".format(test_duration))
++
++# ReproAgent instrumentation: preserve the original console output and also
++# emit a machine-readable metric when the workflow provides an output path.
++output_directory = os.environ.get('REPRO_OUTPUT_DIR')
++if output_directory:
++    if not os.path.isdir(output_directory):
++        os.makedirs(output_directory)
++    metrics = {
++        'seed': seed,
++        'dataset': FLAGS.dataset,
++        'epochs_completed': len(cost_val),
++        'numpy_version': np.__version__,
++        'python_version': sys.version.split()[0],
++        'test_loss': float(test_cost),
++        'test_accuracy': float(test_acc),
++        'test_accuracy_percent': float(test_acc) * 100.0,
++        'test_duration_seconds': float(test_duration),
++        'tensorflow_version': tf.__version__,
++        'upstream_commit': os.environ.get('REPRO_UPSTREAM_COMMIT')
++    }
++    with open(os.path.join(output_directory, 'metrics.json'), 'w') as handle:
++        json.dump(metrics, handle, indent=2, sort_keys=True)

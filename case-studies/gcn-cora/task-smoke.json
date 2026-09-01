@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "task_id": "gcn-cora-table2-smoke",
+  "title": "GCN Cora Table 2 engineering smoke reproduction",
+  "description": "Three-seed environment and instrumentation check; not the final paper-level verdict.",
+  "paper": {
+    "pdf_path": "paper/gcn-paper.pdf",
+    "repository_url": "https://github.com/tkipf/gcn.git",
+    "commit_sha": "39a4089fe72ad9f055ed6fdb9746abdcfebc4d81",
+    "evidence": [
+      {
+        "field": "reported_value",
+        "quote": "GCN (this paper) 70.3 (7s) 81.5 (4s) 79.0 (38s) 66.0 (48s)",
+        "page": 6,
+        "table": "Table 2",
+        "cell": "GCN (this paper) / Cora",
+        "confidence": 1.0
+      }
+    ]
+  },
+  "source": {
+    "directory": "experiment/upstream",
+    "command": ["{python}", "run_gcn.py"],
+    "result_file": "metrics.json",
+    "metric_key": "test_accuracy_percent"
+  },
+  "claim": {
+    "metric": "Cora test classification accuracy",
+    "reported_value": 81.5,
+    "unit": "percent",
+    "acceptance": {
+      "mode": "absolute",
+      "tolerance": 3.0,
+      "min_successful_seeds": 3,
+      "aggregation": "mean"
+    }
+  },
+  "execution": {
+    "seeds": [7, 19, 42],
+    "timeout_seconds": 900,
+    "cpu_limit": 2.0,
+    "memory_mb": 4096,
+    "build_network": true,
+    "network": false
+  }
+}

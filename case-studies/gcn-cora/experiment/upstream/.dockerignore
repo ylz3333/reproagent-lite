@@ -1,0 +1,5 @@
+# Provenance metadata and interpreter caches are not image build inputs.
+.git
+**/__pycache__
+**/*.pyc
+**/*.pyo

@@ -1,0 +1,19 @@
+# Python interpreter and test/lint caches.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.vs/
+
+# Local environments and packaging outputs.
+.venv/
+dist/
+build/
+*.egg-info/
+
+# Reproduction evidence is generated and may be large or machine-specific.
+runs/
+demo-output/
+
+# Local secrets must never enter source control.
+.env

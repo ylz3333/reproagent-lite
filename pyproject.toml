@@ -1,0 +1,37 @@
+# PEP 517 build configuration. Runtime dependencies are declared separately.
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+# Installable package metadata and the Python compatibility floor.
+[project]
+name = "reproagent-lite"
+version = "0.1.0"
+description = "A verifiable, sandbox-first scientific reproduction agent MVP."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "ReproAgent-Lite contributors" }]
+dependencies = []
+
+# Heavy/integrated capabilities stay optional; the core pipeline is stdlib-only.
+[project.optional-dependencies]
+pdf = ["PyMuPDF>=1.24"]
+openai = ["openai>=1.68"]
+dev = ["pytest>=8", "ruff>=0.8"]
+
+# Expose the same cli.main function used by `python -m reproagent_lite`.
+[project.scripts]
+reproagent = "reproagent_lite.cli:main"
+
+# Use the src layout so tests cannot accidentally import from the repository root.
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# Shared style target for contributors; formatting does not change verdict logic.
+[tool.ruff]
+line-length = 100
+target-version = "py311"
