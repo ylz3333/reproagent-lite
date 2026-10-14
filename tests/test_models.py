@@ -29,6 +29,24 @@ class ModelTests(unittest.TestCase):
         with self.assertRaisesRegex(ModelValidationError, "unknown field"):
             TaskSpec.from_dict(payload)
 
+    def test_overflowing_numeric_task_fields_are_validation_errors(self) -> None:
+        paths = (
+            ("claim", "reported_value"),
+            ("claim", "acceptance", "tolerance"),
+            ("execution", "cpu_limit"),
+            ("paper", "evidence", 0, "confidence"),
+        )
+        for path in paths:
+            for sign in (1, -1):
+                with self.subTest(path=path, sign=sign):
+                    payload = json.loads(json.dumps(self.payload))
+                    target = payload
+                    for component in path[:-1]:
+                        target = target[component]
+                    target[path[-1]] = sign * 10**400
+                    with self.assertRaisesRegex(ModelValidationError, "must be finite"):
+                        TaskSpec.from_json(json.dumps(payload))
+
     def test_seed_requirement_must_be_achievable(self) -> None:
         payload = json.loads(json.dumps(self.payload))
         payload["claim"]["acceptance"]["min_successful_seeds"] = 4
