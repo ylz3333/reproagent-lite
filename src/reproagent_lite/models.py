@@ -77,7 +77,10 @@ def _number(value: Any, context: str, *, minimum: float | None = None) -> float:
 
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ModelValidationError(f"{context} must be a number")
-    result = float(value)
+    try:
+        result = float(value)
+    except OverflowError as exc:
+        raise ModelValidationError(f"{context} must be finite") from exc
     if not math.isfinite(result):
         raise ModelValidationError(f"{context} must be finite")
     if minimum is not None and result < minimum:

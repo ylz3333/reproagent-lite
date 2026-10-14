@@ -38,6 +38,54 @@ class WorkflowTests(unittest.TestCase):
                 (run_directory / "report.md").read_text(encoding="utf-8"),
             )
 
+    def test_overflowing_metric_does_not_abort_remaining_seeds_or_reporting(self) -> None:
+        project_root = Path(__file__).resolve().parents[1]
+        task = json.loads(
+            (project_root / "examples" / "linear-regression" / "task.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "source"
+            source.mkdir()
+            # This trusted fixture exercises the real subprocess and artifact pipeline.
+            (source / "experiment.py").write_text(
+                "import json, os\n"
+                "from pathlib import Path\n"
+                "seed = int(os.environ['REPRO_SEED'])\n"
+                f"value = 10**400 if seed == 7 else {task['claim']['reported_value']!r}\n"
+                "(Path(os.environ['REPRO_OUTPUT_DIR']) / 'metrics.json').write_text(\n"
+                "    json.dumps({'rmse': value}), encoding='utf-8')\n",
+                encoding="utf-8",
+            )
+            task["source"]["directory"] = "source"
+            task_path = root / "task.json"
+            task_path.write_text(json.dumps(task), encoding="utf-8")
+            run_directory = root / "run"
+            result, attempts = ReproductionWorkflow(task_path, run_directory).run(
+                backend="local", allow_unsafe_local=True
+            )
+
+            self.assertEqual([attempt.seed for attempt in attempts], [7, 19, 42])
+            self.assertEqual(
+                [attempt.status for attempt in attempts], ["FAILED", "SUCCEEDED", "SUCCEEDED"]
+            )
+            self.assertIsNone(attempts[0].observed_value)
+            self.assertIn("must be finite", attempts[0].error)
+            self.assertEqual(result.status, "INCONCLUSIVE")
+            self.assertEqual(result.successful_seeds, 2)
+            self.assertEqual(len(json.loads((run_directory / "attempts.json").read_text())), 3)
+            verdict = json.loads((run_directory / "verdict.json").read_text())
+            self.assertEqual(verdict["status"], "INCONCLUSIVE")
+            self.assertIn("attempts/seed-7/metrics.json", verdict["evidence_hashes"])
+            self.assertIn(
+                "INCONCLUSIVE", (run_directory / "report.md").read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                json.loads((run_directory / "state.json").read_text())["state"], "REPORTED"
+            )
+
     @unittest.skipUnless(shutil.which("git"), "Git is required for provenance test")
     def test_prepare_verifies_registered_git_checkout(self) -> None:
         project_root = Path(__file__).resolve().parents[1]
