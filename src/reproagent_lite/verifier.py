@@ -16,6 +16,17 @@ class MetricReadError(ValueError):
     """Raised when an experiment artifact cannot provide a finite metric."""
 
 
+def _unique_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """Reject ambiguous metric objects instead of choosing the last value."""
+
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise MetricReadError(f"Metric artifact contains duplicate JSON field {key!r}")
+        result[key] = value
+    return result
+
+
 def read_metric(path: str | Path, key: str) -> float:
     """Read a finite numeric value from a dot-delimited JSON key path."""
 
@@ -23,7 +34,9 @@ def read_metric(path: str | Path, key: str) -> float:
     if not metric_path.is_file():
         raise MetricReadError(f"Metric artifact does not exist: {metric_path}")
     try:
-        payload = json.loads(metric_path.read_text(encoding="utf-8"))
+        payload = json.loads(
+            metric_path.read_text(encoding="utf-8"), object_pairs_hook=_unique_object
+        )
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise MetricReadError(f"Metric artifact is not valid UTF-8 JSON: {metric_path}") from exc
     value: object = payload
