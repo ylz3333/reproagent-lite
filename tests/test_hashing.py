@@ -12,6 +12,24 @@ from reproagent_lite.hashing import sha256_tree
 class HashingTests(unittest.TestCase):
     """Protect the distinction between experiment inputs and mutable caches."""
 
+    def test_source_hash_does_not_exclude_files_based_on_ancestor_names(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            ordinary = base / "ordinary"
+            ordinary.mkdir()
+            content = "print('stable')\n"
+            (ordinary / "experiment.py").write_text(content, encoding="utf-8")
+            baseline = sha256_tree(ordinary)
+            for name in (".git", "__pycache__"):
+                with self.subTest(ancestor=name):
+                    root = base / name / "source"
+                    root.mkdir(parents=True)
+                    source = root / "experiment.py"
+                    source.write_text(content, encoding="utf-8")
+                    self.assertEqual(sha256_tree(root), baseline)
+                    source.write_text("print('changed')\n", encoding="utf-8")
+                    self.assertNotEqual(sha256_tree(root), baseline)
+
     def test_source_hash_ignores_git_metadata_and_python_cache(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

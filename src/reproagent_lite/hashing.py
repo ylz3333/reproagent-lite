@@ -28,7 +28,9 @@ def iter_files(root: str | Path) -> Iterable[Path]:
 
     root_path = Path(root).resolve()
     for path in sorted(root_path.rglob("*"), key=lambda item: item.as_posix()):
-        if path.is_file() and not {"__pycache__", ".git"}.intersection(path.parts):
+        if path.is_file() and not {"__pycache__", ".git"}.intersection(
+            path.relative_to(root_path).parts
+        ):
             yield path
 
 
