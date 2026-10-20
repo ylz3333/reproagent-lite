@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 from pathlib import Path
 from typing import Iterable
 
@@ -27,10 +28,14 @@ def iter_files(root: str | Path) -> Iterable[Path]:
     """
 
     root_path = Path(root).resolve()
-    for path in sorted(root_path.rglob("*"), key=lambda item: item.as_posix()):
-        if path.is_file() and not {"__pycache__", ".git"}.intersection(
-            path.relative_to(root_path).parts
-        ):
+    excluded = {"__pycache__", ".git"}
+    files: list[Path] = []
+    for directory, directories, filenames in os.walk(root_path, followlinks=False):
+        # Prune metadata before descent, rather than scanning and discarding it.
+        directories[:] = [name for name in directories if name not in excluded]
+        files.extend(Path(directory) / name for name in filenames if name not in excluded)
+    for path in sorted(files, key=lambda item: item.as_posix()):
+        if path.is_file():
             yield path
 
 
