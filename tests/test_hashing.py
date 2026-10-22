@@ -14,6 +14,23 @@ from reproagent_lite.hashing import sha256_tree
 class HashingTests(unittest.TestCase):
     """Protect the distinction between experiment inputs and mutable caches."""
 
+    def test_unreadable_source_directory_does_not_produce_partial_hash(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            blocked = root / "inputs"
+            blocked.mkdir()
+            (blocked / "data.csv").write_bytes(b"experiment input")
+            original_scandir = os.scandir
+
+            def deny_input_directory(path):
+                if Path(path).resolve() == blocked:
+                    raise PermissionError("cannot scan experiment inputs")
+                return original_scandir(path)
+
+            with patch("os.scandir", side_effect=deny_input_directory):
+                with self.assertRaisesRegex(PermissionError, "cannot scan experiment inputs"):
+                    sha256_tree(root)
+
     def test_excluded_directories_are_not_traversed(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
