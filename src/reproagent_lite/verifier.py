@@ -33,7 +33,10 @@ def read_metric(path: str | Path, key: str) -> float:
         value = value[component]
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise MetricReadError(f"Metric {key!r} must be numeric")
-    numeric = float(value)
+    try:
+        numeric = float(value)
+    except OverflowError as exc:
+        raise MetricReadError(f"Metric {key!r} must be finite") from exc
     if not math.isfinite(numeric):
         raise MetricReadError(f"Metric {key!r} must be finite")
     return numeric

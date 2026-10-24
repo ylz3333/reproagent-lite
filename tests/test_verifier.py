@@ -44,6 +44,25 @@ class VerifierTests(unittest.TestCase):
             with self.assertRaises(MetricReadError):
                 read_metric(metric_path, "missing")
 
+    def test_metric_rejects_integers_outside_float_range(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            metric_path = Path(directory) / "metrics.json"
+            for value in (10**400, -(10**400)):
+                with self.subTest(value=value):
+                    metric_path.write_text(
+                        json.dumps({"test": {"rmse": value}}), encoding="utf-8"
+                    )
+                    with self.assertRaisesRegex(MetricReadError, "must be finite"):
+                        read_metric(metric_path, "test.rmse")
+
+    def test_metric_accepts_representable_integers(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            metric_path = Path(directory) / "metrics.json"
+            for value in (0, 42, -42, 10**300):
+                with self.subTest(value=value):
+                    metric_path.write_text(json.dumps({"metric": value}), encoding="utf-8")
+                    self.assertEqual(read_metric(metric_path, "metric"), float(value))
+
 
 if __name__ == "__main__":
     unittest.main()
