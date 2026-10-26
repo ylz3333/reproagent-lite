@@ -24,7 +24,9 @@ def read_metric(path: str | Path, key: str) -> float:
         raise MetricReadError(f"Metric artifact does not exist: {metric_path}")
     try:
         payload = json.loads(metric_path.read_text(encoding="utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+    except ValueError as exc:
+        # JSON integer conversion can raise plain ValueError at Python's digit
+        # limit; keep that failure within the workflow's metric-error boundary.
         raise MetricReadError(f"Metric artifact is not valid UTF-8 JSON: {metric_path}") from exc
     value: object = payload
     for component in key.split("."):
