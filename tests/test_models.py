@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import unittest
 from pathlib import Path
 
@@ -52,6 +53,27 @@ class ModelTests(unittest.TestCase):
         payload["claim"]["acceptance"]["min_successful_seeds"] = 4
         with self.assertRaisesRegex(ModelValidationError, "cannot exceed"):
             TaskSpec.from_dict(payload)
+
+    def test_integer_digit_limit_is_a_task_validation_error(self) -> None:
+        previous_limit = sys.get_int_max_str_digits()
+        self.addCleanup(sys.set_int_max_str_digits, previous_limit)
+        sys.set_int_max_str_digits(640)
+        for sign in ("", "-"):
+            with self.subTest(sign=sign):
+                text = '{"value":' + sign + "9" * 641 + "}"
+                with self.assertRaisesRegex(ModelValidationError, "invalid JSON number"):
+                    TaskSpec.from_json(text)
+
+    def test_json_errors_keep_specific_diagnostics(self) -> None:
+        cases = (
+            ('{"x":1,"x":2}', "duplicate JSON field 'x'"),
+            ('{"x":NaN}', "non-standard JSON number 'NaN'"),
+            ('{"x":}', "invalid JSON at line 1, column 6"),
+        )
+        for text, message in cases:
+            with self.subTest(text=text):
+                with self.assertRaisesRegex(ModelValidationError, message):
+                    TaskSpec.from_json(text)
 
 
 if __name__ == "__main__":

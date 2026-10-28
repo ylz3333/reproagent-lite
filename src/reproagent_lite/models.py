@@ -585,6 +585,11 @@ class TaskSpec:
             raise ModelValidationError(
                 f"invalid JSON at line {exc.lineno}, column {exc.colno}: {exc.msg}"
             ) from exc
+        except ModelValidationError:
+            raise
+        except ValueError as exc:
+            # Python's integer digit limit raises plain ValueError during decoding.
+            raise ModelValidationError("invalid JSON number: exceeds decoder limits") from exc
         return cls.from_dict(raw)
 
     @classmethod
