@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -43,6 +44,39 @@ class VerifierTests(unittest.TestCase):
             self.assertEqual(read_metric(metric_path, "test.rmse"), 0.5)
             with self.assertRaises(MetricReadError):
                 read_metric(metric_path, "missing")
+
+    def test_metric_rejects_integers_outside_float_range(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            metric_path = Path(directory) / "metrics.json"
+            for value in (10**400, -(10**400)):
+                with self.subTest(value=value):
+                    metric_path.write_text(
+                        json.dumps({"test": {"rmse": value}}), encoding="utf-8"
+                    )
+                    with self.assertRaisesRegex(MetricReadError, "must be finite"):
+                        read_metric(metric_path, "test.rmse")
+
+    def test_metric_accepts_representable_integers(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            metric_path = Path(directory) / "metrics.json"
+            for value in (0, 42, -42, 10**300):
+                with self.subTest(value=value):
+                    metric_path.write_text(json.dumps({"metric": value}), encoding="utf-8")
+                    self.assertEqual(read_metric(metric_path, "metric"), float(value))
+
+    def test_metric_integer_digit_limit_is_a_metric_read_error(self) -> None:
+        previous_limit = sys.get_int_max_str_digits()
+        self.addCleanup(sys.set_int_max_str_digits, previous_limit)
+        sys.set_int_max_str_digits(640)
+        with tempfile.TemporaryDirectory() as directory:
+            metric_path = Path(directory) / "metrics.json"
+            for sign in ("", "-"):
+                with self.subTest(sign=sign):
+                    metric_path.write_text(
+                        '{"metric": ' + sign + "9" * 641 + "}", encoding="utf-8"
+                    )
+                    with self.assertRaisesRegex(MetricReadError, "JSON"):
+                        read_metric(metric_path, "metric")
 
 
 if __name__ == "__main__":

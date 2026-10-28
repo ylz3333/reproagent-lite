@@ -77,7 +77,10 @@ def _number(value: Any, context: str, *, minimum: float | None = None) -> float:
 
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ModelValidationError(f"{context} must be a number")
-    result = float(value)
+    try:
+        result = float(value)
+    except OverflowError as exc:
+        raise ModelValidationError(f"{context} must be finite") from exc
     if not math.isfinite(result):
         raise ModelValidationError(f"{context} must be finite")
     if minimum is not None and result < minimum:
@@ -582,6 +585,11 @@ class TaskSpec:
             raise ModelValidationError(
                 f"invalid JSON at line {exc.lineno}, column {exc.colno}: {exc.msg}"
             ) from exc
+        except ModelValidationError:
+            raise
+        except ValueError as exc:
+            # Python's integer digit limit raises plain ValueError during decoding.
+            raise ModelValidationError("invalid JSON number: exceeds decoder limits") from exc
         return cls.from_dict(raw)
 
     @classmethod
