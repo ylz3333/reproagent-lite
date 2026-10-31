@@ -24,6 +24,8 @@ def read_metric(path: str | Path, key: str) -> float:
         raise MetricReadError(f"Metric artifact does not exist: {metric_path}")
     try:
         payload = json.loads(metric_path.read_text(encoding="utf-8"))
+    except RecursionError as exc:
+        raise MetricReadError(f"Metric JSON nesting exceeds decoder limits: {metric_path}") from exc
     except ValueError as exc:
         # JSON integer conversion can raise plain ValueError at Python's digit
         # limit; keep that failure within the workflow's metric-error boundary.

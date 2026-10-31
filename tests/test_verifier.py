@@ -78,6 +78,14 @@ class VerifierTests(unittest.TestCase):
                     with self.assertRaisesRegex(MetricReadError, "JSON"):
                         read_metric(metric_path, "metric")
 
+    def test_excessive_json_nesting_is_a_metric_read_error(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            metric_path = Path(directory) / "metrics.json"
+            text = '{"metric":0.5,"extra":' + '[' * 100000 + '0' + ']' * 100000 + '}'
+            metric_path.write_text(text, encoding="utf-8")
+            with self.assertRaisesRegex(MetricReadError, "nesting"):
+                read_metric(metric_path, "metric")
+
 
 if __name__ == "__main__":
     unittest.main()

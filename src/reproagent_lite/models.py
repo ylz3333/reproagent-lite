@@ -581,6 +581,8 @@ class TaskSpec:
                 parse_constant=reject_constant,
                 object_pairs_hook=reject_duplicate_keys,
             )
+        except RecursionError as exc:
+            raise ModelValidationError("JSON nesting exceeds decoder limits") from exc
         except json.JSONDecodeError as exc:
             raise ModelValidationError(
                 f"invalid JSON at line {exc.lineno}, column {exc.colno}: {exc.msg}"

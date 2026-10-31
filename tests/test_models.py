@@ -75,6 +75,11 @@ class ModelTests(unittest.TestCase):
                 with self.assertRaisesRegex(ModelValidationError, message):
                     TaskSpec.from_json(text)
 
+    def test_excessive_json_nesting_is_a_task_validation_error(self) -> None:
+        text = '{"extra":' + '[' * 100000 + '0' + ']' * 100000 + '}'
+        with self.assertRaisesRegex(ModelValidationError, "nesting"):
+            TaskSpec.from_json(text)
+
 
 if __name__ == "__main__":
     unittest.main()
