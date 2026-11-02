@@ -39,6 +39,17 @@ class WorkflowTests(unittest.TestCase):
             )
 
     def test_overflowing_metric_does_not_abort_remaining_seeds_or_reporting(self) -> None:
+        self._assert_invalid_metric_preserves_workflow(
+            '{"rmse":' + "1" + "0" * 400 + "}", "must be finite"
+        )
+
+    def test_deep_metric_does_not_abort_remaining_seeds_or_reporting(self) -> None:
+        self._assert_invalid_metric_preserves_workflow(
+            '{"rmse":0.5,"extra":' + "[" * 100000 + "0" + "]" * 100000 + "}",
+            "nesting exceeds decoder limits",
+        )
+
+    def _assert_invalid_metric_preserves_workflow(self, invalid_json, expected_error):
         project_root = Path(__file__).resolve().parents[1]
         task = json.loads(
             (project_root / "examples" / "linear-regression" / "task.json").read_text(
@@ -49,14 +60,16 @@ class WorkflowTests(unittest.TestCase):
             root = Path(directory)
             source = root / "source"
             source.mkdir()
+            (source / "invalid.json").write_text(invalid_json, encoding="utf-8")
             # This trusted fixture exercises the real subprocess and artifact pipeline.
             (source / "experiment.py").write_text(
                 "import json, os\n"
                 "from pathlib import Path\n"
                 "seed = int(os.environ['REPRO_SEED'])\n"
-                f"value = 10**400 if seed == 7 else {task['claim']['reported_value']!r}\n"
+                f"value = {task['claim']['reported_value']!r}\n"
+                "text = Path('invalid.json').read_text(encoding='utf-8') if seed == 7 else json.dumps({'rmse': value})\n"
                 "(Path(os.environ['REPRO_OUTPUT_DIR']) / 'metrics.json').write_text(\n"
-                "    json.dumps({'rmse': value}), encoding='utf-8')\n",
+                "    text, encoding='utf-8')\n",
                 encoding="utf-8",
             )
             task["source"]["directory"] = "source"
@@ -72,7 +85,11 @@ class WorkflowTests(unittest.TestCase):
                 [attempt.status for attempt in attempts], ["FAILED", "SUCCEEDED", "SUCCEEDED"]
             )
             self.assertIsNone(attempts[0].observed_value)
-            self.assertIn("must be finite", attempts[0].error)
+            self.assertIn(expected_error, attempts[0].error)
+            self.assertEqual(
+                (run_directory / "attempts/seed-7/metrics.json").read_text(encoding="utf-8"),
+                invalid_json,
+            )
             self.assertEqual(result.status, "INCONCLUSIVE")
             self.assertEqual(result.successful_seeds, 2)
             self.assertEqual(len(json.loads((run_directory / "attempts.json").read_text())), 3)
