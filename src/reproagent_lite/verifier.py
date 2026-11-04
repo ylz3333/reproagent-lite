@@ -43,7 +43,11 @@ def _aggregate(values: Sequence[float], mode: str) -> float:
     """Apply the aggregation method registered in the task before execution."""
 
     if mode == "mean":
-        return statistics.fmean(values)
+        try:
+            return statistics.fmean(values)
+        except OverflowError:
+            # The sum can overflow even though the mean is representable.
+            return statistics.mean(values)
     if mode == "median":
         return float(statistics.median(values))
     if mode == "min":

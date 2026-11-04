@@ -32,6 +32,16 @@ class VerifierTests(unittest.TestCase):
         result = verify(self.task, [1.0, 1.0, 1.0])
         self.assertEqual(result.status, "FAIL")
 
+    def test_mean_of_large_finite_seed_metrics_can_pass(self) -> None:
+        for value in (1e308, -1e308):
+            with self.subTest(value=value):
+                payload = self.task.to_dict()
+                payload["claim"]["reported_value"] = value
+                task = TaskSpec.from_dict(payload)
+                result = verify(task, [value] * 3)
+                self.assertEqual(result.aggregate_value, value)
+                self.assertEqual(result.status, "PASS")
+
     def test_missing_seeds_are_inconclusive(self) -> None:
         result = verify(self.task, [self.task.expected_value])
         self.assertEqual(result.status, "INCONCLUSIVE")
