@@ -46,6 +46,17 @@ class VerifierTests(unittest.TestCase):
         result = verify(self.task, [self.task.expected_value])
         self.assertEqual(result.status, "INCONCLUSIVE")
 
+    def test_median_of_large_finite_seed_metrics_can_pass(self) -> None:
+        for value in (1e308, -1e308):
+            with self.subTest(value=value):
+                payload = self.task.to_dict()
+                payload["claim"]["reported_value"] = value
+                payload["claim"]["acceptance"]["aggregation"] = "median"
+                task = TaskSpec.from_dict(payload)
+                result = verify(task, [value] * 4)
+                self.assertEqual(result.aggregate_value, value)
+                self.assertEqual(result.status, "PASS")
+
     def test_metric_key_supports_nested_objects(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             metric_path = Path(directory) / "metrics.json"

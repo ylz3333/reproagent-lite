@@ -49,7 +49,13 @@ def _aggregate(values: Sequence[float], mode: str) -> float:
             # The sum can overflow even though the mean is representable.
             return statistics.mean(values)
     if mode == "median":
-        return float(statistics.median(values))
+        median = float(statistics.median(values))
+        if math.isinf(median):
+            ordered = sorted(values)
+            middle = len(ordered) // 2
+            # Average the central pair without overflowing their sum.
+            return statistics.mean(ordered[middle - 1:middle + 1])
+        return median
     if mode == "min":
         return min(values)
     if mode == "max":
