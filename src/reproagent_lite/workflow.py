@@ -383,7 +383,7 @@ class ReproductionWorkflow:
                 duration_seconds=execution.duration_seconds,
                 error=str(exc),
                 evidence_hashes=evidence_hashes(
-                    (path for path in evidence if path.is_file()),
+                    (*evidence, metric_path),
                     relative_to=self.run_directory,
                 ),
             )
