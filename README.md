@@ -149,6 +149,12 @@ Each run directory contains:
 A `PASS` means only that the registered aggregate metric met the registered tolerance. It
 does not establish every scientific claim in the paper.
 
+For an `INCONCLUSIVE` verdict, compare `successful_seeds` with `required_seeds`
+in `verdict.json`. Open `attempts.json` and inspect the `error` and `exit_code`
+for each failed seed. A process can exit successfully but write an unreadable
+metric. In that case, use the attempt's `evidence_hashes` to locate the original
+result file, if present, and compare it with the registered `source.metric_key`.
+
 ## Isolation model
 
 The Docker backend uses a read-only root filesystem and source mount, a dedicated writable

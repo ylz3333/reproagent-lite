@@ -92,10 +92,12 @@ class WorkflowTests(unittest.TestCase):
             )
             self.assertEqual(result.status, "INCONCLUSIVE")
             self.assertEqual(result.successful_seeds, 2)
-            self.assertEqual(len(json.loads((run_directory / "attempts.json").read_text())), 3)
+            records = json.loads((run_directory / "attempts.json").read_text())
+            self.assertEqual(len(records), 3)
             verdict = json.loads((run_directory / "verdict.json").read_text())
             self.assertEqual(verdict["status"], "INCONCLUSIVE")
-            self.assertIn("attempts/seed-7/metrics.json", verdict["evidence_hashes"])
+            label = "attempts/seed-7/metrics.json"
+            self.assertEqual(records[0]["evidence_hashes"][label], verdict["evidence_hashes"][label])
             self.assertIn(
                 "INCONCLUSIVE", (run_directory / "report.md").read_text(encoding="utf-8")
             )
