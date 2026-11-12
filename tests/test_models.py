@@ -6,7 +6,7 @@ import json
 import unittest
 from pathlib import Path
 
-from reproagent_lite.models import ModelValidationError, TaskSpec
+from reproagent_lite.models import AcceptanceSpec, ModelValidationError, TaskSpec
 
 
 class ModelTests(unittest.TestCase):
@@ -22,6 +22,18 @@ class ModelTests(unittest.TestCase):
         task = TaskSpec.from_dict(self.payload)
         self.assertEqual(TaskSpec.from_dict(task.to_dict()), task)
         self.assertIsNone(task.paper.pdf_path)
+
+    def test_relative_tolerance_does_not_accept_overflowed_difference(self) -> None:
+        for expected in (1.2e308, -1.2e308):
+            for mode in ("relative", "both"):
+                for relative, accepted in ((1.5, False), (2.0, True), (2.5, True)):
+                    with self.subTest(expected=expected, mode=mode, relative=relative):
+                        rule = AcceptanceSpec(
+                            expected=expected, mode=mode,
+                            tolerance=relative if mode == "relative" else 0.0,
+                            relative_tolerance=relative if mode == "both" else None,
+                        )
+                        self.assertEqual(rule.check(-expected), accepted)
 
     def test_unknown_fields_are_rejected(self) -> None:
         payload = json.loads(json.dumps(self.payload))
