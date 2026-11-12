@@ -32,6 +32,19 @@ class VerifierTests(unittest.TestCase):
         result = verify(self.task, [1.0, 1.0, 1.0])
         self.assertEqual(result.status, "FAIL")
 
+    def test_overflowing_relative_comparison_produces_fail_verdict(self) -> None:
+        payload = self.task.to_dict()
+        payload["claim"]["reported_value"] = 1.2e308
+        payload["claim"]["acceptance"] = {
+            "mode": "relative", "tolerance": 1.5,
+            "aggregation": "min", "min_successful_seeds": 3,
+        }
+        task = TaskSpec.from_dict(payload)
+        result = verify(task, [-1.2e308] * 3)
+        self.assertEqual(result.successful_seeds, 3)
+        self.assertEqual(result.aggregate_value, -1.2e308)
+        self.assertEqual(result.status, "FAIL")
+
     def test_missing_seeds_are_inconclusive(self) -> None:
         result = verify(self.task, [self.task.expected_value])
         self.assertEqual(result.status, "INCONCLUSIVE")

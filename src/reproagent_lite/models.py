@@ -9,6 +9,7 @@ fail loudly instead of silently changing an experiment.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from fractions import Fraction
 import json
 import math
 from pathlib import Path
@@ -375,7 +376,17 @@ class AcceptanceSpec:
             self.absolute_tolerance is not None and difference <= self.absolute_tolerance
         )
         relative = self.effective_relative_tolerance
-        relative_ok = relative is not None and difference <= relative * abs(self.expected)
+        relative_ok = False
+        if relative is not None:
+            limit = relative * abs(self.expected)
+            if math.isinf(difference) and math.isinf(limit):
+                # Infinity <= infinity loses the ordering of finite inputs.
+                # Compare exact ratios only on this overflow path.
+                relative_ok = abs(Fraction(observed) - Fraction(self.expected)) <= (
+                    Fraction(relative) * abs(Fraction(self.expected))
+                )
+            else:
+                relative_ok = difference <= limit
         if self.mode == "absolute":
             return absolute_ok
         if self.mode == "relative":
